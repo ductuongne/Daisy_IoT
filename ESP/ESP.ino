@@ -12,7 +12,7 @@ const char *ssid = "daisymusicgroup";
 const char *password = "39393939";
 
 // Cấu hình giao thức MQTT Broker
-const char *mqtt_broker = "broker.hivemq.com";
+const char *mqtt_broker = "10.162.4.28";
 const int mqtt_port = 1883;
 const char *mqtt_topic_cmd = "esp32/lenh";
 const char *mqtt_topic_status = "esp32/trangthai";
