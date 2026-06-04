@@ -1,171 +1,276 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32-CAM Dashboard</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <title>ESP32-CAM Security Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div>
+                <div class="eyebrow">ESP32-CAM Control Center</div>
+                <h1>Dashboard giám sát và điều khiển</h1>
+                <p class="subtitle">Điều khiển camera, còi, cảm biến PIR theo dạng khối trạng thái rõ ràng.</p>
+            </div>
+            <div class="topbar-meta">
+                <div class="pill" id="broker-pill">MQTT: {{ 'Connected' if broker_connected else 'Disconnected' }}</div>
+                <div class="pill pill-soft" id="time-pill">--</div>
+            </div>
+        </header>
 
-<div class="container">
+        <main class="layout">
+            <section class="hero-grid">
+                <article class="panel stream-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Live stream</h2>
+                            <p>Camera trực tiếp từ ESP32-CAM</p>
+                        </div>
+                        <span id="online-badge" class="status-badge status-offline">Offline</span>
+                    </div>
+                    <div class="stream-frame">
+                        <img id="stream-img" src="{{ stream_url }}/stream" alt="ESP32 Camera Stream">
+                    </div>
+                </article>
 
-    <h1>ESP32-CAM Security Dashboard</h1>
+                <aside class="panel alert-panel" id="alert-panel" hidden>
+                    <div class="alert-icon">!</div>
+                    <div>
+                        <h2>Cảnh báo chuyển động</h2>
+                        <p id="alert-message">PIR đã phát hiện chuyển động.</p>
+                    </div>
+                </aside>
+            </section>
 
-    <!-- Camera Stream -->
-    <div class="card stream">
+            <section class="panel controls-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Điều khiển chức năng</h2>
+                        <p>Mỗi block chứa cặp nút bật / tắt để thao tác nhanh.</p>
+                    </div>
+                </div>
 
-        <div class="section-title">
-            Live Camera Stream
-        </div>
+                <div class="control-grid">
+                    <article class="control-card" data-key="camera">
+                        <div class="control-card-head">
+                            <div>
+                                <h3>Camera</h3>
+                                <p>Cho phép bật hoặc ngắt luồng hình ảnh.</p>
+                            </div>
+                            <span class="mini-badge badge-off">TẮT</span>
+                        </div>
+                        <div class="toggle-block">
+                            <button class="btn btn-on" data-command="CAMERA_ON">Bật</button>
+                            <button class="btn btn-off" data-command="CAMERA_OFF">Tắt</button>
+                        </div>
+                    </article>
 
-        <img src="{{ stream_url }}/stream"
-             alt="ESP32 Camera Stream">
+                    <article class="control-card" data-key="pir">
+                        <div class="control-card-head">
+                            <div>
+                                <h3>Cảm biến PIR</h3>
+                                <p>Giám sát chuyển động trong khu vực.</p>
+                            </div>
+                            <span class="mini-badge badge-off">TẮT</span>
+                        </div>
+                        <div class="toggle-block">
+                            <button class="btn btn-on" data-command="CAMBIEN_ON">Bật</button>
+                            <button class="btn btn-off" data-command="CAMBIEN_OFF">Tắt</button>
+                        </div>
+                    </article>
 
+                    <article class="control-card" data-key="auto-siren">
+                        <div class="control-card-head">
+                            <div>
+                                <h3>Còi tự động</h3>
+                                <p>Kích hoạt báo động khi phát hiện sự kiện.</p>
+                            </div>
+                            <span class="mini-badge badge-off">TẮT</span>
+                        </div>
+                        <div class="toggle-block">
+                            <button class="btn btn-on" data-command="COI_ON">Bật</button>
+                            <button class="btn btn-off" data-command="COI_OFF">Tắt</button>
+                        </div>
+                    </article>
+
+                    <article class="control-card control-card-accent" data-key="alarm">
+                        <div class="control-card-head">
+                            <div>
+                                <h3>Còi khẩn cấp</h3>
+                                <p>Dùng khi cần phát cảnh báo ngay lập tức.</p>
+                            </div>
+                            <span class="mini-badge badge-off">TẮT</span>
+                        </div>
+                        <div class="toggle-block">
+                            <button class="btn btn-on" data-command="COIKC_ON">Bật</button>
+                            <button class="btn btn-off" data-command="COIKC_OFF">Tắt</button>
+                        </div>
+                    </article>
+
+                    <article class="control-card" data-key="reset">
+                        <div class="control-card-head">
+                            <div>
+                                <h3>Khởi động lại</h3>
+                                <p>Gửi lệnh reset cho ESP32-CAM.</p>
+                            </div>
+                            <span class="mini-badge badge-soft">SYSTEM</span>
+                        </div>
+                        <div class="toggle-block single">
+                            <button class="btn btn-neutral" data-command="RESET">Reset thiết bị</button>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="bottom-grid">
+                <article class="panel status-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Trạng thái hệ thống</h2>
+                            <p>Đồng bộ theo dữ liệu MQTT mới nhất.</p>
+                        </div>
+                        <button class="btn btn-neutral" onclick="updateStatus()">Làm mới</button>
+                    </div>
+                    <div class="status-grid" id="status-grid"></div>
+                </article>
+
+                <article class="panel events-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Event log</h2>
+                            <p>Danh sách sự kiện gần nhất từ server.</p>
+                        </div>
+                    </div>
+                    <div id="events" class="events-list">
+                        <div class="empty-state">Chưa có sự kiện.</div>
+                    </div>
+                </article>
+            </section>
+        </main>
     </div>
-
-    <!-- Controls -->
-    <div class="card">
-
-        <div class="section-title">
-            Device Controls
-        </div>
-
-        <div class="button-grid">
-
-            <!-- Camera -->
-            <button class="btn-green"
-                    onclick="sendCommand('CAMERA_ON')">
-                Camera ON
-            </button>
-
-            <button class="btn-red"
-                    onclick="sendCommand('CAMERA_OFF')">
-                Camera OFF
-            </button>
-
-            <!-- Emergency Siren -->
-            <button class="btn-orange"
-                    onclick="sendCommand('COIKC_ON')">
-                Emergency ON
-            </button>
-
-            <button class="btn-gray"
-                    onclick="sendCommand('COIKC_OFF')">
-                Emergency OFF
-            </button>
-
-            <!-- Auto Siren -->
-            <button class="btn-green"
-                    onclick="sendCommand('COI_ON')">
-                Auto Siren ON
-            </button>
-
-            <button class="btn-red"
-                    onclick="sendCommand('COI_OFF')">
-                Auto Siren OFF
-            </button>
-
-            <!-- PIR -->
-            <button class="btn-green"
-                    onclick="sendCommand('CAMBIEN_ON')">
-                PIR ON
-            </button>
-
-            <button class="btn-red"
-                    onclick="sendCommand('CAMBIEN_OFF')">
-                PIR OFF
-            </button>
-
-            <!-- Status -->
-            <button class="btn-blue"
-                    onclick="sendCommand('TRANG_THAI')">
-                Refresh Status
-            </button>
-
-            <!-- Reset -->
-            <button class="btn-orange"
-                    onclick="sendCommand('RESET')">
-                Restart ESP
-            </button>
-
-        </div>
-
-    </div>
-
-    <!-- Alert -->
-    <div id="alert"
-         class="alert-box">
-        ⚠ Motion Detected (PIR ALERT)
-    </div>
-
-    <!-- Status -->
-    <div class="card">
-
-        <div class="section-title">
-            Device Status
-        </div>
-
-        <pre id="status"
-             class="status-box">
-Waiting for data...
-        </pre>
-
-    </div>
-
-</div>
 
 <script>
+const initialState = {{ initial_state | tojson }};
 
-function sendCommand(command)
-{
-    fetch(`/cmd/${command}`)
-        .then(() => console.log("Sent:", command))
-        .catch(err => console.error(err));
+function fmtValue(value) {
+    if (value === null || value === undefined) return '--';
+    if (typeof value === 'boolean') return value ? 'ON' : 'OFF';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
 }
 
-async function updateStatus()
-{
-    try
-    {
-        const response = await fetch("/status");
+function setOnlineBadge(online) {
+    const badge = document.getElementById('online-badge');
+    badge.textContent = online ? 'Online' : 'Offline';
+    badge.className = `status-badge ${online ? 'status-online' : 'status-offline'}`;
+}
 
-        const data = await response.json();
+function setBrokerPill(connected) {
+    const pill = document.getElementById('broker-pill');
+    pill.textContent = connected ? 'MQTT: Connected' : 'MQTT: Disconnected';
+    pill.className = `pill ${connected ? 'pill-ok' : 'pill-bad'}`;
+}
 
-        document.getElementById("status").innerText =
-            JSON.stringify(data, null, 2);
+function renderStatus(data) {
+    setOnlineBadge(Boolean(data.online));
+    setBrokerPill(Boolean(data.connection === 'connected' || data.online));
 
-        const alertBox =
-            document.getElementById("alert");
+    const timePill = document.getElementById('time-pill');
+    timePill.textContent = data.server_time || '--';
 
-        if (data.alert === true)
-        {
-            alertBox.style.display = "block";
-
-            setTimeout(() =>
-            {
-                alertBox.style.display = "none";
-            }, 5000);
-        }
+    const alertPanel = document.getElementById('alert-panel');
+    const alertActive = Boolean(data.alert);
+    alertPanel.hidden = !alertActive;
+    if (alertActive) {
+        const alertMessage = document.getElementById('alert-message');
+        alertMessage.textContent = data.last_event ? `Sự kiện gần nhất: ${data.last_event}` : 'PIR đã phát hiện chuyển động.';
     }
-    catch(error)
-    {
+
+    const keys = [
+        ['connection', 'Kết nối'],
+        ['online', 'Online'],
+        ['last_seen', 'Last seen'],
+        ['last_event', 'Last event'],
+        ['alert', 'Alert'],
+    ];
+
+    const grid = document.getElementById('status-grid');
+    grid.innerHTML = '';
+
+    keys.forEach(([key, label]) => {
+        const value = data[key];
+        const card = document.createElement('div');
+        card.className = 'status-item';
+        card.innerHTML = `
+            <span class="status-label">${label}</span>
+            <strong class="status-value">${fmtValue(value)}</strong>
+        `;
+        grid.appendChild(card);
+    });
+
+    document.querySelectorAll('.control-card').forEach(card => {
+        const key = card.getAttribute('data-key');
+        const enabled = data[key] === true || data[key] === 'ON' || data[key] === 'connected';
+        card.classList.toggle('is-on', enabled === true);
+        card.classList.toggle('is-off', enabled === false);
+
+        const badge = card.querySelector('.mini-badge');
+        if (badge) {
+            badge.textContent = enabled ? 'BẬT' : 'TẮT';
+            badge.className = `mini-badge ${enabled ? 'badge-on' : 'badge-off'}`;
+        }
+    });
+}
+
+function renderEvents(events) {
+    const box = document.getElementById('events');
+    box.innerHTML = '';
+
+    if (!events || events.length === 0) {
+        box.innerHTML = '<div class="empty-state">Chưa có sự kiện.</div>';
+        return;
+    }
+
+    events.slice(0, 12).forEach(event => {
+        const row = document.createElement('div');
+        row.className = `event-item event-${event.kind || 'raw'}`;
+        row.innerHTML = `
+            <div class="event-meta">
+                <strong>${event.kind || 'event'}</strong>
+                <span>${event.ts || '--'}</span>
+            </div>
+            <div class="event-detail">${event.detail || ''}</div>
+        `;
+        box.appendChild(row);
+    });
+}
+
+async function updateStatus() {
+    try {
+        const response = await fetch('/status');
+        const data = await response.json();
+        renderStatus(data);
+        renderEvents(data.events || []);
+    } catch (error) {
         console.error(error);
     }
 }
 
-// cập nhật trạng thái mỗi giây
+document.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-command]');
+    if (!btn) return;
+    sendCommand(btn.dataset.command);
+});
+
+renderStatus(initialState);
+renderEvents(initialState.events || []);
 setInterval(updateStatus, 1000);
-
-// tải lần đầu
 updateStatus();
-
 </script>
-
 </body>
-
 </html>
