@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32-CAM Dashboard</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>ESP32-CAM Security Dashboard</h1>
+
+    <!-- Camera Stream -->
+    <div class="card stream">
+
+        <div class="section-title">
+            Live Camera Stream
+        </div>
+
+        <img src="{{ stream_url }}/stream"
+             alt="ESP32 Camera Stream">
+
+    </div>
+
+    <!-- Controls -->
+    <div class="card">
+
+        <div class="section-title">
+            Device Controls
+        </div>
+
+        <div class="button-grid">
+
+            <!-- Camera -->
+            <button class="btn-green"
+                    onclick="sendCommand('CAMERA_ON')">
+                Camera ON
+            </button>
+
+            <button class="btn-red"
+                    onclick="sendCommand('CAMERA_OFF')">
+                Camera OFF
+            </button>
+
+            <!-- Emergency Siren -->
+            <button class="btn-orange"
+                    onclick="sendCommand('COIKC_ON')">
+                Emergency ON
+            </button>
+
+            <button class="btn-gray"
+                    onclick="sendCommand('COIKC_OFF')">
+                Emergency OFF
+            </button>
+
+            <!-- Auto Siren -->
+            <button class="btn-green"
+                    onclick="sendCommand('COI_ON')">
+                Auto Siren ON
+            </button>
+
+            <button class="btn-red"
+                    onclick="sendCommand('COI_OFF')">
+                Auto Siren OFF
+            </button>
+
+            <!-- PIR -->
+            <button class="btn-green"
+                    onclick="sendCommand('CAMBIEN_ON')">
+                PIR ON
+            </button>
+
+            <button class="btn-red"
+                    onclick="sendCommand('CAMBIEN_OFF')">
+                PIR OFF
+            </button>
+
+            <!-- Status -->
+            <button class="btn-blue"
+                    onclick="sendCommand('TRANG_THAI')">
+                Refresh Status
+            </button>
+
+            <!-- Reset -->
+            <button class="btn-orange"
+                    onclick="sendCommand('RESET')">
+                Restart ESP
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Alert -->
+    <div id="alert"
+         class="alert-box">
+        ⚠ Motion Detected (PIR ALERT)
+    </div>
+
+    <!-- Status -->
+    <div class="card">
+
+        <div class="section-title">
+            Device Status
+        </div>
+
+        <pre id="status"
+             class="status-box">
+Waiting for data...
+        </pre>
+
+    </div>
+
+</div>
+
+<script>
+
+function sendCommand(command)
+{
+    fetch(`/cmd/${command}`)
+        .then(() => console.log("Sent:", command))
+        .catch(err => console.error(err));
+}
+
+async function updateStatus()
+{
+    try
+    {
+        const response = await fetch("/status");
+
+        const data = await response.json();
+
+        document.getElementById("status").innerText =
+            JSON.stringify(data, null, 2);
+
+        const alertBox =
+            document.getElementById("alert");
+
+        if (data.alert === true)
+        {
+            alertBox.style.display = "block";
+
+            setTimeout(() =>
+            {
+                alertBox.style.display = "none";
+            }, 5000);
+        }
+    }
+    catch(error)
+    {
+        console.error(error);
+    }
+}
+
+// cập nhật trạng thái mỗi giây
+setInterval(updateStatus, 1000);
+
+// tải lần đầu
+updateStatus();
+
+</script>
+
+</body>
+
+</html>
