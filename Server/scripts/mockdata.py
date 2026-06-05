@@ -6,6 +6,10 @@ import cv2
 import numpy as np
 import requests
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from video_utils import encode_for_browser
+
 
 BASE_DIR = Path.cwd()
 DATA_DIR = BASE_DIR / "data"
@@ -100,6 +104,7 @@ for i in range(3):
         writer.write(frame)
 
     writer.release()
+    encode_for_browser(video_path)
 
     records.append(
         {

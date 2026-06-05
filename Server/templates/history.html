@@ -27,9 +27,25 @@
 
 <script>
 
-function formatTime(isoTime)
+function formatTime(value)
 {
-    const date = new Date(isoTime);
+    if (!value)
+    {
+        return "—";
+    }
+
+    const normalized =
+        value.includes("T")
+            ? value
+            : value.replace(" ", "T");
+
+    const date = new Date(normalized);
+
+    if (Number.isNaN(date.getTime()))
+    {
+        return value;
+    }
+
     return date.toLocaleString();
 }
 
@@ -38,6 +54,7 @@ function createDetectionCard(record)
     const card = document.createElement("div");
     card.className = "history-card";
     card.dataset.id = record.id;
+    card.dataset.videoUrl = record.video_url;
 
     card.innerHTML = `
         <div class="history-card-header">
@@ -47,23 +64,37 @@ function createDetectionCard(record)
             <div class="history-info">
                 <div class="history-time">${formatTime(record.time)}</div>
                 <div class="history-message">${record.message}</div>
-                <div class="history-meta">Stream: ${record.stream_url}</div>
+                <div class="history-meta">${
+                    record.stream_url
+                        ? `Stream: ${record.stream_url}`
+                        : `Image: ${record.image || "—"}`
+                }</div>
                 <div class="history-hint">Click to view recording</div>
             </div>
         </div>
         <div class="history-video-panel" hidden>
-            <video controls preload="metadata">
-                <source src="${record.video_url}" type="video/mp4">
-            </video>
+            <video controls playsinline></video>
+            <p class="video-error" hidden>
+                Video could not play. Run:
+                <code>python scripts/reencode_videos.py</code>
+            </p>
         </div>
     `;
 
+    const panel =
+        card.querySelector(".history-video-panel");
+    const video =
+        card.querySelector("video");
+    const errorEl =
+        card.querySelector(".video-error");
+
+    video.addEventListener("error", () =>
+    {
+        errorEl.hidden = false;
+    });
+
     card.addEventListener("click", () =>
     {
-        const panel =
-            card.querySelector(".history-video-panel");
-        const video =
-            card.querySelector("video");
         const isOpen =
             !panel.hidden;
 
@@ -77,13 +108,19 @@ function createDetectionCard(record)
             .forEach(v =>
             {
                 v.pause();
-                v.currentTime = 0;
+                v.removeAttribute("src");
+                v.load();
             });
+
+        document.querySelectorAll(".video-error")
+            .forEach(e => e.hidden = true);
 
         if (!isOpen)
         {
             panel.hidden = false;
             card.classList.add("active");
+            video.src = card.dataset.videoUrl;
+            video.load();
             video.play().catch(() => {});
         }
     });

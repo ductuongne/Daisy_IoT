@@ -7,6 +7,8 @@ from pathlib import Path
 import cv2
 import requests
 
+from video_utils import encode_for_browser
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 IMAGES_DIR = DATA_DIR / "images"
@@ -32,10 +34,39 @@ def _read_records():
         return json.load(f)
 
 
+def _media_url(path, kind):
+    if not path:
+        return ""
+    path = path.replace("\\", "/")
+    if path.startswith("/"):
+        return path
+    if path.startswith("data/"):
+        return "/" + path
+    if path.startswith("images/") or path.startswith("videos/"):
+        return "/data/" + path
+    return f"/data/{kind}/{Path(path).name}"
+
+
+def normalize_record(record):
+    image = record.get("image", "")
+    video = record.get("video", "")
+
+    return {
+        "id": record.get("id"),
+        "time": record.get("time") or record.get("timestamp") or "",
+        "message": record.get("message") or record.get("event") or "PIR_ALERT",
+        "stream_url": record.get("stream_url") or "",
+        "image_url": record.get("image_url") or _media_url(image, "images"),
+        "video_url": record.get("video_url") or _media_url(video, "videos"),
+        "image": image,
+        "video": video,
+    }
+
+
 def get_all_records():
     _ensure_dirs()
     with _lock:
-        return _read_records()
+        return [normalize_record(r) for r in _read_records()]
 
 
 def _save_record(record):
@@ -84,24 +115,23 @@ def _do_capture(stream_base_url):
     _ensure_dirs()
     ts = datetime.now()
     stamp = ts.strftime("%Y%m%d_%H%M%S")
-    image_name = f"pir_{stamp}.jpg"
-    video_name = f"pir_{stamp}.mp4"
+    image_name = f"{stamp}.jpg"
+    video_name = f"{stamp}.mp4"
     image_path = IMAGES_DIR / image_name
     video_path = VIDEOS_DIR / video_name
 
     try:
         capture_screenshot(stream_base_url, image_path)
         capture_video(stream_base_url, video_path)
+        encode_for_browser(video_path)
 
         record = {
             "id": stamp,
-            "time": ts.isoformat(),
-            "message": "PIR_ALERT",
+            "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S"),
+            "event": "PIR_ALERT",
             "stream_url": stream_base_url,
-            "image_url": f"/data/images/{image_name}",
-            "video_url": f"/data/videos/{video_name}",
-            "image": f"data/images/{image_name}",
-            "video": f"data/videos/{video_name}",
+            "image": f"images/{image_name}",
+            "video": f"videos/{video_name}",
         }
         _save_record(record)
         print(f"PIR capture saved: {stamp}")

@@ -35,7 +35,11 @@ def serve_image(filename):
 
 @app.route("/data/videos/<path:filename>")
 def serve_video(filename):
-    return send_from_directory(VIDEOS_DIR, filename)
+    return send_from_directory(
+        VIDEOS_DIR,
+        filename,
+        mimetype="video/mp4",
+    )
 
 
 @app.route("/status")

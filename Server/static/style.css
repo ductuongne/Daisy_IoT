@@ -230,6 +230,21 @@ button:disabled {
     max-width: 800px;
     border-radius: 8px;
     background: #000;
+    display: block;
+}
+
+.video-error {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8d7da;
+    color: #721c24;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.video-error code {
+    font-family: Consolas, monospace;
+    font-size: 13px;
 }
 
 .empty-state {
