@@ -14,7 +14,10 @@
 
 <div class="container">
 
-    <h1>ESP32-CAM Security Dashboard</h1>
+    <div class="page-header">
+        <h1>ESP32-CAM Security Dashboard</h1>
+        <a href="/history" class="nav-link">View PIR History →</a>
+    </div>
 
     <!-- Camera Stream -->
     <div class="card stream">
@@ -37,57 +40,35 @@
 
         <div class="button-grid">
 
-            <!-- Camera -->
-            <button class="btn-green"
-                    onclick="sendCommand('CAMERA_ON')">
-                Camera ON
+            <button id="cameraBtn"
+                    class="btn-blue"
+                    onclick="toggleDevice('camera')">
+                Camera: OFF
             </button>
 
-            <button class="btn-red"
-                    onclick="sendCommand('CAMERA_OFF')">
-                Camera OFF
+            <button id="emergencyBtn"
+                    class="btn-orange"
+                    onclick="toggleDevice('emergency')">
+                Emergency: OFF
             </button>
 
-            <!-- Emergency Siren -->
-            <button class="btn-orange"
-                    onclick="sendCommand('COIKC_ON')">
-                Emergency ON
+            <button id="autoSirenBtn"
+                    class="btn-green"
+                    onclick="toggleDevice('autoSiren')">
+                Auto Siren: OFF
             </button>
 
-            <button class="btn-gray"
-                    onclick="sendCommand('COIKC_OFF')">
-                Emergency OFF
+            <button id="pirBtn"
+                    class="btn-red"
+                    onclick="toggleDevice('pir')">
+                PIR: OFF
             </button>
 
-            <!-- Auto Siren -->
-            <button class="btn-green"
-                    onclick="sendCommand('COI_ON')">
-                Auto Siren ON
-            </button>
-
-            <button class="btn-red"
-                    onclick="sendCommand('COI_OFF')">
-                Auto Siren OFF
-            </button>
-
-            <!-- PIR -->
-            <button class="btn-green"
-                    onclick="sendCommand('CAMBIEN_ON')">
-                PIR ON
-            </button>
-
-            <button class="btn-red"
-                    onclick="sendCommand('CAMBIEN_OFF')">
-                PIR OFF
-            </button>
-
-            <!-- Status -->
             <button class="btn-blue"
                     onclick="sendCommand('TRANG_THAI')">
                 Refresh Status
             </button>
 
-            <!-- Reset -->
             <button class="btn-orange"
                     onclick="sendCommand('RESET')">
                 Restart ESP
@@ -121,22 +102,148 @@ Waiting for data...
 
 <script>
 
+const deviceState = {
+    camera: false,
+    emergency: false,
+    autoSiren: false,
+    pir: false
+};
+
+function disableAllButtons()
+{
+    const buttons =
+        document.querySelectorAll("button");
+
+    buttons.forEach(btn =>
+    {
+        btn.disabled = true;
+    });
+
+    setTimeout(() =>
+    {
+        buttons.forEach(btn =>
+        {
+            btn.disabled = false;
+        });
+    }, 1000);
+}
+
 function sendCommand(command)
 {
+    disableAllButtons();
+
     fetch(`/cmd/${command}`)
         .then(() => console.log("Sent:", command))
         .catch(err => console.error(err));
+}
+
+function toggleDevice(device)
+{
+    disableAllButtons();
+
+    let command = "";
+
+    switch(device)
+    {
+        case "camera":
+
+            deviceState.camera =
+                !deviceState.camera;
+
+            command =
+                deviceState.camera
+                ? "CAMERA_ON"
+                : "CAMERA_OFF";
+
+            document.getElementById("cameraBtn")
+                .innerText =
+                `Camera: ${
+                    deviceState.camera
+                    ? "ON"
+                    : "OFF"
+                }`;
+
+            break;
+
+        case "emergency":
+
+            deviceState.emergency =
+                !deviceState.emergency;
+
+            command =
+                deviceState.emergency
+                ? "COIKC_ON"
+                : "COIKC_OFF";
+
+            document.getElementById("emergencyBtn")
+                .innerText =
+                `Emergency: ${
+                    deviceState.emergency
+                    ? "ON"
+                    : "OFF"
+                }`;
+
+            break;
+
+        case "autoSiren":
+
+            deviceState.autoSiren =
+                !deviceState.autoSiren;
+
+            command =
+                deviceState.autoSiren
+                ? "COI_ON"
+                : "COI_OFF";
+
+            document.getElementById("autoSirenBtn")
+                .innerText =
+                `Auto Siren: ${
+                    deviceState.autoSiren
+                    ? "ON"
+                    : "OFF"
+                }`;
+
+            break;
+
+        case "pir":
+
+            deviceState.pir =
+                !deviceState.pir;
+
+            command =
+                deviceState.pir
+                ? "CAMBIEN_ON"
+                : "CAMBIEN_OFF";
+
+            document.getElementById("pirBtn")
+                .innerText =
+                `PIR: ${
+                    deviceState.pir
+                    ? "ON"
+                    : "OFF"
+                }`;
+
+            break;
+    }
+
+    fetch(`/cmd/${command}`)
+        .then(() =>
+            console.log("Sent:", command))
+        .catch(console.error);
 }
 
 async function updateStatus()
 {
     try
     {
-        const response = await fetch("/status");
+        const response =
+            await fetch("/status");
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
-        document.getElementById("status").innerText =
+        document.getElementById("status")
+            .innerText =
             JSON.stringify(data, null, 2);
 
         const alertBox =
@@ -144,11 +251,13 @@ async function updateStatus()
 
         if (data.alert === true)
         {
-            alertBox.style.display = "block";
+            alertBox.style.display =
+                "block";
 
             setTimeout(() =>
             {
-                alertBox.style.display = "none";
+                alertBox.style.display =
+                    "none";
             }, 5000);
         }
     }
@@ -158,14 +267,11 @@ async function updateStatus()
     }
 }
 
-// cập nhật trạng thái mỗi giây
 setInterval(updateStatus, 1000);
 
-// tải lần đầu
 updateStatus();
 
 </script>
 
 </body>
-
 </html>

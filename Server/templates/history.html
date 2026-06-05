@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIR Detection History</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="page-header">
+        <h1>PIR Detection History</h1>
+        <a href="/" class="nav-link">← Back to Dashboard</a>
+    </div>
+
+    <div id="historyList" class="history-list">
+        <p class="empty-state">Loading detections...</p>
+    </div>
+
+</div>
+
+<script>
+
+function formatTime(isoTime)
+{
+    const date = new Date(isoTime);
+    return date.toLocaleString();
+}
+
+function createDetectionCard(record)
+{
+    const card = document.createElement("div");
+    card.className = "history-card";
+    card.dataset.id = record.id;
+
+    card.innerHTML = `
+        <div class="history-card-header">
+            <img src="${record.image_url}"
+                 alt="Detection ${record.id}"
+                 class="history-thumb">
+            <div class="history-info">
+                <div class="history-time">${formatTime(record.time)}</div>
+                <div class="history-message">${record.message}</div>
+                <div class="history-meta">Stream: ${record.stream_url}</div>
+                <div class="history-hint">Click to view recording</div>
+            </div>
+        </div>
+        <div class="history-video-panel" hidden>
+            <video controls preload="metadata">
+                <source src="${record.video_url}" type="video/mp4">
+            </video>
+        </div>
+    `;
+
+    card.addEventListener("click", () =>
+    {
+        const panel =
+            card.querySelector(".history-video-panel");
+        const video =
+            card.querySelector("video");
+        const isOpen =
+            !panel.hidden;
+
+        document.querySelectorAll(".history-video-panel")
+            .forEach(p => p.hidden = true);
+
+        document.querySelectorAll(".history-card")
+            .forEach(c => c.classList.remove("active"));
+
+        document.querySelectorAll("video")
+            .forEach(v =>
+            {
+                v.pause();
+                v.currentTime = 0;
+            });
+
+        if (!isOpen)
+        {
+            panel.hidden = false;
+            card.classList.add("active");
+            video.play().catch(() => {});
+        }
+    });
+
+    return card;
+}
+
+async function loadHistory()
+{
+    const list =
+        document.getElementById("historyList");
+
+    try
+    {
+        const response =
+            await fetch("/api/history");
+
+        const records =
+            await response.json();
+
+        list.innerHTML = "";
+
+        if (!records.length)
+        {
+            list.innerHTML =
+                '<p class="empty-state">No PIR detections recorded yet.</p>';
+            return;
+        }
+
+        records.forEach(record =>
+        {
+            list.appendChild(
+                createDetectionCard(record));
+        });
+    }
+    catch (error)
+    {
+        console.error(error);
+        list.innerHTML =
+            '<p class="empty-state">Failed to load history.</p>';
+    }
+}
+
+loadHistory();
+
+</script>
+
+</body>
+</html>
