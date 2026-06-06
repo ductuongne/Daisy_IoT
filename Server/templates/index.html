@@ -1,439 +1,171 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32-CAM Security Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>ESP32-CAM Dashboard</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-    <div class="app-shell">
-        <header class="topbar">
-            <div>
-                <div class="eyebrow">ESP32-CAM Control Center</div>
-                <h1>Dashboard giám sát và điều khiển</h1>
-                <p class="subtitle">Livestream đặt ở trung tâm, công tắc một chạm, trạng thái thời gian thực rõ ràng.</p>
-            </div>
-            <div class="topbar-meta">
-                <div class="pill" id="broker-pill">MQTT: {{ 'Connected' if broker_connected else 'Disconnected' }}</div>
-                <div class="pill pill-soft" id="time-pill">--</div>
-            </div>
-        </header>
 
-        <main class="layout">
-            <section class="hero-stack">
-                <article class="panel stream-panel">
-                    <div class="panel-head">
-                        <div>
-                            <h2>Live stream</h2>
-                            <p>Camera trực tiếp từ ESP32-CAM</p>
-                        </div>
-                        <span id="online-badge" class="status-badge status-offline">Offline</span>
-                    </div>
+<div class="container">
 
-                    <div class="stream-frame">
-                        <img id="stream-img" src="{{ stream_url }}/stream" alt="ESP32 Camera Stream">
-                    </div>
-                </article>
+    <h1>ESP32-CAM Security Dashboard</h1>
 
-                <aside class="panel alert-panel" id="alert-panel" hidden>
-                    <div class="alert-icon">!</div>
-                    <div>
-                        <h2>Cảnh báo chuyển động</h2>
-                        <p id="alert-message">PIR đã phát hiện chuyển động.</p>
-                    </div>
-                </aside>
-            </section>
+    <!-- Camera Stream -->
+    <div class="card stream">
 
-            <section class="panel controls-panel">
-                <div class="panel-head">
-                    <div>
-                        <h2>Điều khiển thiết bị</h2>
-                        <p>Mỗi ô là một công tắc bật/tắt, nhấn một lần để đổi trạng thái.</p>
-                    </div>
-                    <button class="ghost-btn" id="refresh-btn" data-command="TRANG_THAI">Làm mới trạng thái</button>
-                </div>
+        <div class="section-title">
+            Live Camera Stream
+        </div>
 
-                <div class="control-grid">
-                    <article class="control-card" data-card="camera">
-                        <div class="control-card-head">
-                            <div>
-                                <h3>Camera</h3>
-                                <p>Bật / tắt camera và luồng hình ảnh</p>
-                            </div>
-                            <span class="mini-badge" data-state="camera">--</span>
-                        </div>
-                        <button
-                            class="toggle-btn"
-                            data-toggle="camera"
-                            data-on-command="CAMERA_ON"
-                            data-off-command="CAMERA_OFF"
-                        >Bật</button>
-                    </article>
+        <img src="{{ stream_url }}/stream"
+             alt="ESP32 Camera Stream">
 
-                    <article class="control-card" data-card="emergency">
-                        <div class="control-card-head">
-                            <div>
-                                <h3>Còi khẩn cấp</h3>
-                                <p>Kích hoạt còi báo động thủ công</p>
-                            </div>
-                            <span class="mini-badge" data-state="emergency">--</span>
-                        </div>
-                        <button
-                            class="toggle-btn"
-                            data-toggle="emergency"
-                            data-on-command="COIKC_ON"
-                            data-off-command="COIKC_OFF"
-                        >Bật</button>
-                    </article>
-
-                    <article class="control-card" data-card="auto_siren">
-                        <div class="control-card-head">
-                            <div>
-                                <h3>Còi tự động</h3>
-                                <p>Tự kích hoạt còi khi có cảnh báo</p>
-                            </div>
-                            <span class="mini-badge" data-state="auto_siren">--</span>
-                        </div>
-                        <button
-                            class="toggle-btn"
-                            data-toggle="auto_siren"
-                            data-on-command="COI_ON"
-                            data-off-command="COI_OFF"
-                        >Bật</button>
-                    </article>
-
-                    <article class="control-card" data-card="pir">
-                        <div class="control-card-head">
-                            <div>
-                                <h3>PIR cảm biến</h3>
-                                <p>Bật / tắt cảm biến phát hiện chuyển động</p>
-                            </div>
-                            <span class="mini-badge" data-state="pir">--</span>
-                        </div>
-                        <button
-                            class="toggle-btn"
-                            data-toggle="pir"
-                            data-on-command="CAMBIEN_ON"
-                            data-off-command="CAMBIEN_OFF"
-                        >Bật</button>
-                    </article>
-
-                    <article class="control-card control-card-system" data-card="system">
-                        <div class="control-card-head">
-                            <div>
-                                <h3>Hệ thống</h3>
-                                <p>Khởi động lại thiết bị và lấy trạng thái</p>
-                            </div>
-                            <span class="mini-badge mini-badge-system">TOOLS</span>
-                        </div>
-                        <div class="system-actions">
-                            <button class="system-btn system-btn-warn" data-command="RESET">Restart ESP</button>
-                            <button class="system-btn system-btn-info" data-command="TRANG_THAI">Refresh</button>
-                        </div>
-                    </article>
-                </div>
-            </section>
-
-            <section class="bottom-grid">
-                <article class="panel status-panel">
-                    <div class="panel-head">
-                        <div>
-                            <h2>Device status</h2>
-                            <p>Dữ liệu trạng thái nhận từ ESP32</p>
-                        </div>
-                        <span class="status-badge status-online" id="broker-state-badge">CONNECTED</span>
-                    </div>
-                    <div class="status-grid" id="status-grid"></div>
-                </article>
-
-                <article class="panel events-panel">
-                    <div class="panel-head">
-                        <div>
-                            <h2>Event log</h2>
-                            <p>Sự kiện mới nhất từ server</p>
-                        </div>
-                    </div>
-                    <div id="events" class="events-list">
-                        <div class="empty-state">Chưa có sự kiện.</div>
-                    </div>
-                </article>
-            </section>
-        </main>
     </div>
 
+    <!-- Controls -->
+    <div class="card">
+
+        <div class="section-title">
+            Device Controls
+        </div>
+
+        <div class="button-grid">
+
+            <!-- Camera -->
+            <button class="btn-green"
+                    onclick="sendCommand('CAMERA_ON')">
+                Camera ON
+            </button>
+
+            <button class="btn-red"
+                    onclick="sendCommand('CAMERA_OFF')">
+                Camera OFF
+            </button>
+
+            <!-- Emergency Siren -->
+            <button class="btn-orange"
+                    onclick="sendCommand('COIKC_ON')">
+                Emergency ON
+            </button>
+
+            <button class="btn-gray"
+                    onclick="sendCommand('COIKC_OFF')">
+                Emergency OFF
+            </button>
+
+            <!-- Auto Siren -->
+            <button class="btn-green"
+                    onclick="sendCommand('COI_ON')">
+                Auto Siren ON
+            </button>
+
+            <button class="btn-red"
+                    onclick="sendCommand('COI_OFF')">
+                Auto Siren OFF
+            </button>
+
+            <!-- PIR -->
+            <button class="btn-green"
+                    onclick="sendCommand('CAMBIEN_ON')">
+                PIR ON
+            </button>
+
+            <button class="btn-red"
+                    onclick="sendCommand('CAMBIEN_OFF')">
+                PIR OFF
+            </button>
+
+            <!-- Status -->
+            <button class="btn-blue"
+                    onclick="sendCommand('TRANG_THAI')">
+                Refresh Status
+            </button>
+
+            <!-- Reset -->
+            <button class="btn-orange"
+                    onclick="sendCommand('RESET')">
+                Restart ESP
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Alert -->
+    <div id="alert"
+         class="alert-box">
+        ⚠ Motion Detected (PIR ALERT)
+    </div>
+
+    <!-- Status -->
+    <div class="card">
+
+        <div class="section-title">
+            Device Status
+        </div>
+
+        <pre id="status"
+             class="status-box">
+Waiting for data...
+        </pre>
+
+    </div>
+
+</div>
+
 <script>
-const initialState = {{ initial_state | tojson }};
 
-const defaultToggleState = {
-    camera: true,
-    emergency: false,
-    auto_siren: true,
-    pir: true,
-};
-
-const toggleConfig = {
-    camera: {
-        label: 'Camera',
-        keys: ['camera', 'cam_ok', 'camera_on', 'camera_enabled'],
-        defaultEnabled: defaultToggleState.camera,
-    },
-    emergency: {
-        label: 'Còi khẩn cấp',
-        keys: ['emergency', 'coi_kc', 'emergency_on', 'buzzer_emergency'],
-        defaultEnabled: defaultToggleState.emergency,
-    },
-    auto_siren: {
-        label: 'Còi tự động',
-        keys: ['auto_siren', 'coi_td', 'siren_auto', 'buzzer_auto'],
-        defaultEnabled: defaultToggleState.auto_siren,
-    },
-    pir: {
-        label: 'PIR cảm biến',
-        keys: ['pir', 'pir_ok', 'pir_on', 'sensor_on'],
-        defaultEnabled: defaultToggleState.pir,
-    },
-};
-
-function isBooleanLike(value) {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value !== 0;
-    if (typeof value !== 'string') return null;
-
-    const normalized = value.trim().toLowerCase();
-    if (['1', 'true', 'on', 'connected', 'online', 'ok', 'active', 'enabled', 'bật', 'bat'].includes(normalized)) return true;
-    if (['0', 'false', 'off', 'disconnected', 'offline', 'disabled', 'tắt', 'tat'].includes(normalized)) return false;
-    return null;
+function sendCommand(command)
+{
+    fetch(`/cmd/${command}`)
+        .then(() => console.log("Sent:", command))
+        .catch(err => console.error(err));
 }
 
-function normalizeText(value) {
-    if (value === null || value === undefined || value === '') return '--';
-    if (typeof value === 'boolean') return value ? 'ON' : 'OFF';
-    if (typeof value === 'number') return String(value);
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
-}
+async function updateStatus()
+{
+    try
+    {
+        const response = await fetch("/status");
 
-function isEnabledByKeys(data, keys, fallback) {
-    for (const key of keys) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            const result = isBooleanLike(data[key]);
-            if (result !== null) return result;
-        }
-    }
-    return fallback;
-}
-
-function commandForState(isEnabled, cfg, button) {
-    if (isEnabled) return button.dataset.offCommand;
-    return button.dataset.onCommand;
-}
-
-function setToggleUI(cardName, enabled) {
-    const card = document.querySelector(`[data-card="${cardName}"]`);
-    const badge = card?.querySelector(`[data-state="${cardName}"]`);
-    const button = card?.querySelector('[data-toggle]');
-    if (!card || !badge || !button) return;
-
-    card.classList.toggle('is-on', enabled);
-    card.classList.toggle('is-off', !enabled);
-
-    if (enabled) {
-        badge.textContent = 'BẬT';
-        badge.className = 'mini-badge badge-on';
-        button.textContent = 'Tắt';
-        button.className = 'toggle-btn action-off';
-    } else {
-        badge.textContent = 'TẮT';
-        badge.className = 'mini-badge badge-off';
-        button.textContent = 'Bật';
-        button.className = 'toggle-btn action-on';
-    }
-}
-
-function renderToggleStates(data) {
-    for (const [cardName, cfg] of Object.entries(toggleConfig)) {
-        const enabled = isEnabledByKeys(data, cfg.keys, cfg.defaultEnabled);
-        setToggleUI(cardName, enabled);
-    }
-}
-
-function statusTone(key, value) {
-    const normalized = isBooleanLike(value);
-
-    if (key === 'alert') {
-        return normalized ? 'danger' : 'neutral';
-    }
-
-    if (key === 'connection') {
-        if (typeof value === 'string' && value.toLowerCase() === 'connected') return 'good';
-        return 'danger';
-    }
-
-    if (typeof normalized === 'boolean') {
-        return normalized ? 'good' : 'danger';
-    }
-
-    if (typeof value === 'string') {
-        const v = value.toLowerCase();
-        if (v.includes('connected') || v.includes('online') || v === 'on') return 'good';
-        if (v.includes('disconnected') || v.includes('offline') || v === 'off') return 'danger';
-    }
-
-    return 'neutral';
-}
-
-function statusLabelValue(value) {
-    const normalized = isBooleanLike(value);
-    if (normalized === true) return 'ON';
-    if (normalized === false) return 'OFF';
-    return normalizeText(value);
-}
-
-function renderStatus(data) {
-    const online = isBooleanLike(data.online) === true || data.connection === 'connected';
-    const alertActive = isBooleanLike(data.alert) === true;
-
-    const brokerPill = document.getElementById('broker-pill');
-    const brokerStateBadge = document.getElementById('broker-state-badge');
-    const timePill = document.getElementById('time-pill');
-
-    brokerPill.textContent = `MQTT: ${online ? 'Connected' : 'Disconnected'}`;
-    brokerPill.className = `pill ${online ? 'pill-ok' : 'pill-bad'}`;
-
-    brokerStateBadge.textContent = online ? 'CONNECTED' : 'DISCONNECTED';
-    brokerStateBadge.className = `status-badge ${online ? 'status-online' : 'status-offline'}`;
-
-    timePill.textContent = data.server_time ? `Server: ${data.server_time}` : '--';
-
-    const alertPanel = document.getElementById('alert-panel');
-    alertPanel.hidden = !alertActive;
-    if (alertActive) {
-        const alertMessage = document.getElementById('alert-message');
-        alertMessage.textContent = data.last_event ? `Sự kiện gần nhất: ${data.last_event}` : 'PIR đã phát hiện chuyển động.';
-    }
-
-    const items = [
-        { key: 'connection', label: 'Connection' },
-        { key: 'online', label: 'Online' },
-        { key: 'alert', label: 'Alert' },
-        { key: 'last_seen', label: 'Last seen' },
-        { key: 'server_time', label: 'Server time' },
-    ];
-
-    if (Object.prototype.hasOwnProperty.call(data, 'cam_ok')) items.push({ key: 'cam_ok', label: 'Camera' });
-    if (Object.prototype.hasOwnProperty.call(data, 'pir_ok')) items.push({ key: 'pir_ok', label: 'PIR' });
-    if (Object.prototype.hasOwnProperty.call(data, 'coi_td')) items.push({ key: 'coi_td', label: 'Còi tự động' });
-    if (Object.prototype.hasOwnProperty.call(data, 'coi_kc')) items.push({ key: 'coi_kc', label: 'Còi khẩn cấp' });
-
-    const grid = document.getElementById('status-grid');
-    grid.innerHTML = '';
-
-    items.forEach(({ key, label }) => {
-        const value = Object.prototype.hasOwnProperty.call(data, key) ? data[key] : '--';
-        const tone = statusTone(key, value);
-
-        const card = document.createElement('div');
-        card.className = `status-item status-${tone}`;
-        card.innerHTML = `
-            <span class="status-label">${label}</span>
-            <strong class="status-value">${statusLabelValue(value)}</strong>
-        `;
-        grid.appendChild(card);
-    });
-
-    renderToggleStates(data);
-}
-
-function renderEvents(events) {
-    const box = document.getElementById('events');
-    box.innerHTML = '';
-
-    const filtered = (events || []).filter(ev => ev && ev.kind !== 'raw');
-
-    if (filtered.length === 0) {
-        box.innerHTML = '<div class="empty-state">Chưa có sự kiện.</div>';
-        return;
-    }
-
-    filtered.slice(0, 12).forEach(event => {
-        const row = document.createElement('div');
-        row.className = `event-item event-${event.kind || 'info'}`;
-        row.innerHTML = `
-            <div class="event-meta">
-                <strong>${event.kind || 'event'}</strong>
-                <span>${event.ts || '--'}</span>
-            </div>
-            <div class="event-detail">${event.detail || ''}</div>
-        `;
-        box.appendChild(row);
-    });
-}
-
-async function sendCommand(command, button = null) {
-    if (!command) return;
-
-    try {
-        if (button) {
-            button.disabled = true;
-            button.classList.add('pending');
-        }
-
-        await fetch(`/cmd/${encodeURIComponent(command)}`, {
-            method: 'GET',
-            cache: 'no-store',
-        });
-    } catch (error) {
-        console.error(error);
-    } finally {
-        if (button) {
-            button.disabled = false;
-            button.classList.remove('pending');
-        }
-        await updateStatus();
-    }
-}
-
-async function updateStatus() {
-    try {
-        const response = await fetch('/status', { cache: 'no-store' });
         const data = await response.json();
-        renderStatus(data);
-        renderEvents(data.events || []);
-    } catch (error) {
+
+        document.getElementById("status").innerText =
+            JSON.stringify(data, null, 2);
+
+        const alertBox =
+            document.getElementById("alert");
+
+        if (data.alert === true)
+        {
+            alertBox.style.display = "block";
+
+            setTimeout(() =>
+            {
+                alertBox.style.display = "none";
+            }, 5000);
+        }
+    }
+    catch(error)
+    {
         console.error(error);
     }
 }
 
-document.addEventListener('click', (event) => {
-    const cmdBtn = event.target.closest('[data-command]');
-    if (cmdBtn) {
-        sendCommand(cmdBtn.dataset.command, cmdBtn);
-        return;
-    }
-
-    const toggleBtn = event.target.closest('[data-toggle]');
-    if (!toggleBtn) return;
-
-    const cardName = toggleBtn.dataset.toggle;
-    const cfg = toggleConfig[cardName];
-    if (!cfg) return;
-
-    const data = window.__latestStatus || initialState || {};
-    const currentEnabled = isEnabledByKeys(data, cfg.keys, cfg.defaultEnabled);
-    const nextCommand = commandForState(currentEnabled, cfg, toggleBtn);
-
-    sendCommand(nextCommand, toggleBtn);
-});
-
-window.__latestStatus = initialState;
-renderStatus(initialState);
-renderEvents(initialState.events || []);
+// cập nhật trạng thái mỗi giây
 setInterval(updateStatus, 1000);
+
+// tải lần đầu
 updateStatus();
+
 </script>
+
 </body>
+
 </html>
