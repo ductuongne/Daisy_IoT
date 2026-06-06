@@ -1,17 +1,21 @@
 import json
 import os
+from dotenv import load_dotenv
 
 import paho.mqtt.client as mqtt
 
 from pir_capture import handle_pir_detection
 
-BROKER = "broker.hivemq.com"
-PORT = 1883
+load_dotenv()
+
+BROKER = os.getenv("BROKER")
+raw_port = os.getenv("PORT")
+PORT = int(raw_port) if raw_port else 1883
 
 CMD_TOPIC = "esp32/lenh"
 STATUS_TOPIC = "esp32/trangthai"
 
-ESP_IP = os.getenv("ESP_IP", "192.168.4.1")
+ESP_IP = os.getenv("ESP_IP")
 
 latest_status = {}
 

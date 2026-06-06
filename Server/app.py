@@ -1,6 +1,10 @@
 from flask import Flask, render_template, redirect, jsonify, send_from_directory
-from mqtt_client import *
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
+
+from mqtt_client import *
 
 from pir_capture import DATA_DIR, IMAGES_DIR, VIDEOS_DIR, get_all_records
 
