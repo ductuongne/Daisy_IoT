@@ -1,11 +1,14 @@
-from flask import Flask, render_template, redirect, jsonify
+from flask import Flask, render_template, redirect, jsonify, send_from_directory
 from mqtt_client import *
 import os
 
+from pir_capture import DATA_DIR, IMAGES_DIR, VIDEOS_DIR, get_all_records
+
 app = Flask(__name__)
 
-ESP_IP= os.getenv("ESP_IP")
+ESP_IP = os.getenv("ESP_IP")
 start()
+
 
 @app.route("/")
 def home():
@@ -14,9 +17,35 @@ def home():
         stream_url=f"http://{ESP_IP}:80"
     )
 
+
+@app.route("/history")
+def history():
+    return render_template("history.html")
+
+
+@app.route("/api/history")
+def api_history():
+    return jsonify(get_all_records())
+
+
+@app.route("/data/images/<path:filename>")
+def serve_image(filename):
+    return send_from_directory(IMAGES_DIR, filename)
+
+
+@app.route("/data/videos/<path:filename>")
+def serve_video(filename):
+    return send_from_directory(
+        VIDEOS_DIR,
+        filename,
+        mimetype="video/mp4",
+    )
+
+
 @app.route("/status")
 def status():
     return jsonify(latest_status)
+
 
 @app.route("/cmd/<command>")
 def command(command):
@@ -38,6 +67,7 @@ def command(command):
         send_command(command)
 
     return redirect("/")
+
 
 if __name__ == "__main__":
     app.run(

@@ -16,9 +16,27 @@ body {
     margin: auto;
 }
 
-h1 {
-    text-align: center;
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 25px;
+}
+
+h1 {
+    margin: 0;
+}
+
+.nav-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.nav-link:hover {
+    text-decoration: underline;
 }
 
 .card {
@@ -53,26 +71,32 @@ h1 {
     display: grid;
 
     grid-template-columns:
-        repeat(auto-fit, minmax(180px, 1fr));
+        repeat(auto-fit, minmax(220px, 1fr));
 
-    gap: 10px;
+    gap: 12px;
 }
 
 button {
     border: none;
     border-radius: 8px;
 
-    padding: 12px;
+    padding: 14px;
 
     cursor: pointer;
 
     font-size: 15px;
+    font-weight: 600;
 
     transition: 0.2s;
 }
 
-button:hover {
+button:hover:not(:disabled) {
     transform: translateY(-2px);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .btn-green {
@@ -129,4 +153,102 @@ button:hover {
     border: 1px solid #ffeeba;
 
     display: none;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.history-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.history-card:hover,
+.history-card.active {
+    border-color: #007bff;
+}
+
+.history-card-header {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.history-thumb {
+    width: 160px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    flex-shrink: 0;
+}
+
+.history-info {
+    flex: 1;
+}
+
+.history-time {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.history-message {
+    color: #dc3545;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.history-meta {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+
+.history-hint {
+    color: #007bff;
+    font-size: 13px;
+}
+
+.history-video-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+}
+
+.history-video-panel video {
+    width: 100%;
+    max-width: 800px;
+    border-radius: 8px;
+    background: #000;
+    display: block;
+}
+
+.video-error {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8d7da;
+    color: #721c24;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.video-error code {
+    font-family: Consolas, monospace;
+    font-size: 13px;
+}
+
+.empty-state {
+    text-align: center;
+    color: #666;
+    padding: 40px;
 }

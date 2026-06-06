@@ -1,11 +1,17 @@
 import json
+import os
+
 import paho.mqtt.client as mqtt
+
+from pir_capture import handle_pir_detection
 
 BROKER = "broker.hivemq.com"
 PORT = 1883
 
 CMD_TOPIC = "esp32/lenh"
 STATUS_TOPIC = "esp32/trangthai"
+
+ESP_IP = os.getenv("ESP_IP", "192.168.4.1")
 
 latest_status = {}
 
@@ -22,6 +28,8 @@ def on_message(client, userdata, msg):
 
     if payload == "PIR_ALERT":
         latest_status["alert"] = True
+        stream_url = f"http://{ESP_IP}:80"
+        handle_pir_detection(stream_url)
         return
 
     try:
