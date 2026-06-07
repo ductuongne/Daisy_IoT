@@ -18,7 +18,7 @@ print("APP PID:", os.getpid())
 def home():
     return render_template(
         "index.html",
-        stream_url=f"http://{ESP_IP}:80"
+        stream_url=f"http://{ESP_IP}:81"
     )
 
 
@@ -48,10 +48,9 @@ def serve_video(filename):
 
 @app.route("/status")
 def status():
-    # shit
-    # this bug is so annoying
-    print("LATEST STATUS: ", mqtt_client.latest_status)
-    return jsonify(mqtt_client.latest_status)
+    status_data = mqtt_client.get_status()
+    print("LATEST STATUS: ", status_data)
+    return jsonify(status_data)
 
 
 @app.route("/cmd/<command>")

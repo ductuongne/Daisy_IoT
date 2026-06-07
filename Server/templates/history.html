@@ -1,172 +1,163 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIR Detection History</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <title>Lịch Sử Phát Hiện Chuyển Động</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-<div class="container">
+    <div class="container">
 
-    <div class="page-header">
-        <h1>PIR Detection History</h1>
-        <a href="/" class="nav-link">← Back to Dashboard</a>
+        <div class="page-header">
+            <h1>Lịch Sử Phát Hiện PIR</h1>
+            <a href="/" class="nav-link">← Quay lại Bảng Điều Khiển</a>
+        </div>
+
+        <div id="historyList" class="history-list">
+            <p class="empty-state">Đang tải danh sách phát hiện...</p>
+        </div>
+
     </div>
 
-    <div id="historyList" class="history-list">
-        <p class="empty-state">Loading detections...</p>
-    </div>
+    <script>
 
-</div>
+        function formatTime(value) {
+            if (!value) {
+                return "—";
+            }
 
-<script>
+            const normalized =
+                value.includes("T")
+                    ? value
+                    : value.replace(" ", "T");
 
-function formatTime(value)
-{
-    if (!value)
-    {
-        return "—";
-    }
+            const date = new Date(normalized);
 
-    const normalized =
-        value.includes("T")
-            ? value
-            : value.replace(" ", "T");
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
 
-    const date = new Date(normalized);
+            return date.toLocaleString('vi-VN');
+        }
 
-    if (Number.isNaN(date.getTime()))
-    {
-        return value;
-    }
+        function createDetectionCard(record) {
+            const card = document.createElement("div");
+            card.className = "history-card";
+            card.dataset.id = record.id;
+            card.dataset.videoUrl = record.video_url;
 
-    return date.toLocaleString();
-}
-
-function createDetectionCard(record)
-{
-    const card = document.createElement("div");
-    card.className = "history-card";
-    card.dataset.id = record.id;
-    card.dataset.videoUrl = record.video_url;
-
-    card.innerHTML = `
+            card.innerHTML = `
         <div class="history-card-header">
             <img src="${record.image_url}"
-                 alt="Detection ${record.id}"
+                 alt="Phát hiện ${record.id}"
                  class="history-thumb">
             <div class="history-info">
                 <div class="history-time">${formatTime(record.time)}</div>
-                <div class="history-message">${record.message}</div>
-                <div class="history-meta">${
-                    record.stream_url
-                        ? `Stream: ${record.stream_url}`
-                        : `Image: ${record.image || "—"}`
+                <div class="history-message">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right: 4px; display: inline-block; vertical-align: middle;">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" x2="12" y1="9" y2="13"/>
+                        <line x1="12" x2="12.01" y1="17" y2="17"/>
+                    </svg>
+                    PHÁT HIỆN CẢNH BÁO
+                </div>
+                <div class="history-meta">${record.stream_url
+                    ? `Địa chỉ Stream: ${record.stream_url}`
+                    : `Ảnh: ${record.image || "—"}`
                 }</div>
-                <div class="history-hint">Click to view recording</div>
+                <div class="history-hint">Nhấp vào thẻ để xem video ghi hình</div>
             </div>
         </div>
         <div class="history-video-panel" hidden>
             <video controls playsinline></video>
             <p class="video-error" hidden>
-                Video could not play. Run:
-                <code>python scripts/reencode_videos.py</code>
+                Không thể phát video này. Camera chưa bật
             </p>
         </div>
     `;
 
-    const panel =
-        card.querySelector(".history-video-panel");
-    const video =
-        card.querySelector("video");
-    const errorEl =
-        card.querySelector(".video-error");
+            const panel =
+                card.querySelector(".history-video-panel");
+            const video =
+                card.querySelector("video");
+            const errorEl =
+                card.querySelector(".video-error");
 
-    video.addEventListener("error", () =>
-    {
-        errorEl.hidden = false;
-    });
-
-    card.addEventListener("click", () =>
-    {
-        const isOpen =
-            !panel.hidden;
-
-        document.querySelectorAll(".history-video-panel")
-            .forEach(p => p.hidden = true);
-
-        document.querySelectorAll(".history-card")
-            .forEach(c => c.classList.remove("active"));
-
-        document.querySelectorAll("video")
-            .forEach(v =>
-            {
-                v.pause();
-                v.removeAttribute("src");
-                v.load();
+            video.addEventListener("error", () => {
+                errorEl.hidden = false;
             });
 
-        document.querySelectorAll(".video-error")
-            .forEach(e => e.hidden = true);
+            card.addEventListener("click", () => {
+                const isOpen =
+                    !panel.hidden;
 
-        if (!isOpen)
-        {
-            panel.hidden = false;
-            card.classList.add("active");
-            video.src = card.dataset.videoUrl;
-            video.load();
-            video.play().catch(() => {});
-        }
-    });
+                document.querySelectorAll(".history-video-panel")
+                    .forEach(p => p.hidden = true);
 
-    return card;
-}
+                document.querySelectorAll(".history-card")
+                    .forEach(c => c.classList.remove("active"));
 
-async function loadHistory()
-{
-    const list =
-        document.getElementById("historyList");
+                document.querySelectorAll("video")
+                    .forEach(v => {
+                        v.pause();
+                        v.removeAttribute("src");
+                        v.load();
+                    });
 
-    try
-    {
-        const response =
-            await fetch("/api/history");
+                document.querySelectorAll(".video-error")
+                    .forEach(e => e.hidden = true);
 
-        const records =
-            await response.json();
+                if (!isOpen) {
+                    panel.hidden = false;
+                    card.classList.add("active");
+                    video.src = card.dataset.videoUrl;
+                    video.load();
+                    video.play().catch(() => { });
+                }
+            });
 
-        list.innerHTML = "";
-
-        if (!records.length)
-        {
-            list.innerHTML =
-                '<p class="empty-state">No PIR detections recorded yet.</p>';
-            return;
+            return card;
         }
 
-        records.forEach(record =>
-        {
-            list.appendChild(
-                createDetectionCard(record));
-        });
-    }
-    catch (error)
-    {
-        console.error(error);
-        list.innerHTML =
-            '<p class="empty-state">Failed to load history.</p>';
-    }
-}
+        async function loadHistory() {
+            const list =
+                document.getElementById("historyList");
 
-loadHistory();
+            try {
+                const response =
+                    await fetch("/api/history");
 
-</script>
+                const records =
+                    await response.json();
+
+                list.innerHTML = "";
+
+                if (!records.length) {
+                    list.innerHTML =
+                        '<p class="empty-state">Chưa ghi nhận dữ liệu phát hiện PIR nào.</p>';
+                    return;
+                }
+
+                records.forEach(record => {
+                    list.appendChild(
+                        createDetectionCard(record));
+                });
+            }
+            catch (error) {
+                console.error(error);
+                list.innerHTML =
+                    '<p class="empty-state">Không thể tải dữ liệu lịch sử.</p>';
+            }
+        }
+
+        loadHistory();
+
+    </script>
 
 </body>
+
 </html>

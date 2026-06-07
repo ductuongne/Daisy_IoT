@@ -86,7 +86,6 @@ def capture_screenshot(stream_base_url, image_path):
 
 def capture_video(stream_base_url, video_path, duration=VIDEO_DURATION_SEC):
     try:
-
         stream_url = f"{stream_base_url.rstrip('/')}/stream"
         cap = cv2.VideoCapture(stream_url)
 
@@ -95,25 +94,54 @@ def capture_video(stream_base_url, video_path, duration=VIDEO_DURATION_SEC):
 
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if not fps or fps <= 0:
-            fps = 10
+        # Enforce a stable 10 FPS target for playback
+        target_fps = 10
+        frame_delay = 1.0 / target_fps
 
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        writer = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
+        writer = cv2.VideoWriter(str(video_path), fourcc, target_fps, (width, height))
 
+        frames_written = 0
         start = time.time()
-        while time.time() - start < duration:
-            ret, frame = cap.read()
-            if not ret:
+        last_frame = None
+
+        while True:
+            elapsed = time.time() - start
+            if elapsed >= duration:
                 break
-            writer.write(frame)
+
+            ret, frame = cap.read()
+            if ret:
+                last_frame = frame
+            elif last_frame is None:
+                time.sleep(0.05)
+                continue
+
+            # Calculate how many frames should be written by this elapsed time
+            expected_frames = int(elapsed / frame_delay) + 1
+
+            # Duplicate the last read frame to fill the gap if stream is slower than 10 FPS
+            while frames_written < expected_frames:
+                writer.write(last_frame)
+                frames_written += 1
 
         writer.release()
         cap.release()
+
+        if frames_written == 0:
+            if video_path.exists():
+                video_path.unlink()
+            print("VIDEO capture: No frames read, deleted empty video file.")
+            return False
+        return True
     except Exception as e:
         print(f"VIDEO capture failed: {e}")
-
+        if video_path.exists():
+            try:
+                video_path.unlink()
+            except Exception:
+                pass
+        return False
 
 
 def _do_capture(stream_base_url):
@@ -127,8 +155,13 @@ def _do_capture(stream_base_url):
 
     try:
         capture_screenshot(stream_base_url, image_path)
-        capture_video(stream_base_url, video_path)
-        encode_for_browser(video_path)
+        video_captured = capture_video(stream_base_url, video_path)
+
+        if video_captured:
+            encode_for_browser(video_path)
+            video_val = f"videos/{video_name}"
+        else:
+            video_val = ""
 
         record = {
             "id": stamp,
@@ -136,10 +169,23 @@ def _do_capture(stream_base_url):
             "event": "PIR_ALERT",
             "stream_url": stream_base_url,
             "image": f"images/{image_name}",
-            "video": f"videos/{video_name}",
+            "video": video_val,
         }
         _save_record(record)
         print(f"PIR capture saved: {stamp}")
+
+        # Send Telegram notification with photo and video
+        try:
+            from telegram_utils import send_telegram_alert
+            time_str = ts.strftime("%H:%M:%S ngày %d/%m/%Y")
+            msg = f"⚠️ <b>CẢNH BÁO: Phát hiện chuyển động bất thường!</b>\n⏰ Thời gian: {time_str}"
+            send_telegram_alert(
+                msg,
+                photo_path=str(image_path) if image_path.exists() else None,
+                video_path=str(video_path) if (video_captured and video_path.exists()) else None
+            )
+        except Exception as tel_err:
+            print(f"Failed to send Telegram alert: {tel_err}")
     except Exception as e:
         print(f"PIR capture failed: {e}")
 
