@@ -85,30 +85,35 @@ def capture_screenshot(stream_base_url, image_path):
 
 
 def capture_video(stream_base_url, video_path, duration=VIDEO_DURATION_SEC):
-    stream_url = f"{stream_base_url.rstrip('/')}/stream"
-    cap = cv2.VideoCapture(stream_url)
+    try:
 
-    if not cap.isOpened():
-        raise RuntimeError(f"Cannot open stream: {stream_url}")
+        stream_url = f"{stream_base_url.rstrip('/')}/stream"
+        cap = cv2.VideoCapture(stream_url)
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if not fps or fps <= 0:
-        fps = 10
+        if not cap.isOpened():
+            raise RuntimeError(f"Cannot open stream: {stream_url}")
 
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if not fps or fps <= 0:
+            fps = 10
 
-    start = time.time()
-    while time.time() - start < duration:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        writer.write(frame)
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        writer = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
 
-    writer.release()
-    cap.release()
+        start = time.time()
+        while time.time() - start < duration:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            writer.write(frame)
+
+        writer.release()
+        cap.release()
+    except Exception as e:
+        print(f"VIDEO capture failed: {e}")
+
 
 
 def _do_capture(stream_base_url):

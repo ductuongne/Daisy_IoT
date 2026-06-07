@@ -4,15 +4,15 @@ import os
 
 load_dotenv()
 
-from mqtt_client import *
-
+import mqtt_client
 from pir_capture import DATA_DIR, IMAGES_DIR, VIDEOS_DIR, get_all_records
 
 app = Flask(__name__)
 
 ESP_IP = os.getenv("ESP_IP")
-start()
+mqtt_client.start()
 
+print("APP PID:", os.getpid())
 
 @app.route("/")
 def home():
@@ -48,7 +48,10 @@ def serve_video(filename):
 
 @app.route("/status")
 def status():
-    return jsonify(latest_status)
+    # shit
+    # this bug is so annoying
+    print("LATEST STATUS: ", mqtt_client.latest_status)
+    return jsonify(mqtt_client.latest_status)
 
 
 @app.route("/cmd/<command>")
@@ -68,7 +71,7 @@ def command(command):
     ]
 
     if command in valid:
-        send_command(command)
+        mqtt_client.send_command(command)
 
     return redirect("/")
 
@@ -77,5 +80,6 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=5000,
-        debug=True
+        debug=True,
+        use_reloader=False
     )

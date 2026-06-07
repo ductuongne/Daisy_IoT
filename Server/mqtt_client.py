@@ -19,6 +19,8 @@ ESP_IP = os.getenv("ESP_IP")
 
 latest_status = {}
 
+print("MQTT PID:", os.getpid())
+
 def on_connect(client, userdata, flags, rc):
     print("MQTT Connected")
     client.subscribe(STATUS_TOPIC)
@@ -37,7 +39,10 @@ def on_message(client, userdata, msg):
         return
 
     try:
-        latest_status = json.loads(payload)
+        
+        latest_status.clear()
+        latest_status.update(json.loads(payload))
+        print("STATUS UPDATE: ", latest_status)
     except:
         pass
 
