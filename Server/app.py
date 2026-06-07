@@ -12,6 +12,9 @@ app = Flask(__name__)
 ESP_IP = os.getenv("ESP_IP")
 mqtt_client.start()
 
+from telegram_utils import start_bot_thread
+start_bot_thread()
+
 print("APP PID:", os.getpid())
 
 @app.route("/")

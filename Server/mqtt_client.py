@@ -55,6 +55,14 @@ def on_message(client, userdata, msg):
                 latest_status.clear()
                 latest_status.update(new_status)
             print("STATUS UPDATE: ", latest_status)
+            
+            # Sync Telegram control panel menu reactively
+            try:
+                from telegram_utils import sync_telegram_control_panel
+                import threading
+                threading.Thread(target=sync_telegram_control_panel, daemon=True).start()
+            except Exception as e:
+                print("Failed to trigger Telegram sync:", e)
     except Exception as e:
         print("MQTT parsing error:", e)
 
@@ -64,12 +72,60 @@ client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
 client.on_connect = on_connect
 client.on_message = on_message
 
+def check_connection_loop():
+    # Wait a bit on startup so we don't spam offline warnings immediately
+    time.sleep(10)
+    
+    # Track the last known state
+    is_online = (time.time() - last_status_time < 10.0)
+    last_known_state = is_online
+    
+    while True:
+        try:
+            time.sleep(2)
+            current_online = (time.time() - last_status_time < 10.0)
+            
+            if current_online != last_known_state:
+                last_known_state = current_online
+                
+                # State changed! Notify Telegram
+                from telegram_utils import send_telegram_alert, sync_telegram_control_panel
+                
+                if not current_online:
+                    # Device went offline
+                    msg = (
+                        "⚠️ <b>CẢNH BÁO MẤT KẾT NỐI</b> ⚠️\n\n"
+                        "🔴 Thiết bị ESP32-CAM đã <b>MẤT KẾT NỐI</b> đột ngột!\n"
+                        "⏰ Thời gian: " + time.strftime("%H:%M:%S ngày %d/%m/%Y") + "\n\n"
+                        "<i>Vui lòng kiểm tra nguồn điện hoặc mạng Wi-Fi của thiết bị.</i>"
+                    )
+                    send_telegram_alert(msg)
+                    sync_telegram_control_panel()
+                else:
+                    # Device came back online
+                    msg = (
+                        "✅ <b>THIẾT BỊ ĐÃ KẾT NỐI LẠI</b> ✅\n\n"
+                        "🟢 Thiết bị ESP32-CAM đã <b>TRỰC TUYẾN</b> trở lại!\n"
+                        "⏰ Thời gian: " + time.strftime("%H:%M:%S ngày %d/%m/%Y")
+                    )
+                    send_telegram_alert(msg)
+                    sync_telegram_control_panel()
+                    
+        except Exception as e:
+            print("Error in connection check loop:", e)
+
+
 def start():
     try:
         # Use connect_async to prevent blocking Flask startup when the broker is offline
         client.connect_async(BROKER, PORT, 60)
         client.loop_start()
         print(f"MQTT loop started, connecting to broker {BROKER}:{PORT}...")
+        
+        # Start connection monitor thread
+        t = threading.Thread(target=check_connection_loop, daemon=True)
+        t.start()
+        print("MQTT connection monitor thread started successfully.")
     except Exception as e:
         print(f"Failed to start MQTT connection: {e}")
 
