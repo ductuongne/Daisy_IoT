@@ -11,7 +11,7 @@ extern bool checkCameraHardware();
 // ==========================================
 const char *ssid         = "daisymusicgroup";
 const char *password     = "39393939";
-const char *mqtt_broker  = "10.162.4.28";
+const char *mqtt_broker  = "10.176.71.27";
 const int   mqtt_port    = 1883;
 const char *TOPIC_CMD    = "esp32/lenh";
 const char *TOPIC_STATUS = "esp32/trangthai";
@@ -27,8 +27,6 @@ bool coi_tu_dong  = false;  // Server gửi COI_ON/OFF
 bool cam_bien_on  = true;  // Server gửi CAMBIEN_ON/OFF
 bool dang_stream  = true; // Server gửi CAMERA_ON/OFF → CameraWebServer đọc biến này
 bool cam_ok       = false;
-bool pir_ok       = false;
-bool coi_ok       = false;
 
 // ==========================================
 // BIẾN NỘI BỘ
@@ -59,9 +57,6 @@ void setup() {
   pinMode(PIN_PIR,    INPUT);
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
-
-  pir_ok = true;
-  coi_ok = true;
 
   xTaskCreatePinnedToCore(Task1code, "NetworkLogicTask", 10000, NULL, 1, &Task1, 0);
   delay(100);
@@ -96,14 +91,21 @@ void Task1code(void *pvParameters) {
     if (WiFi.status() == WL_CONNECTED) {
       if (!mqttClient.connected()) reconnectMQTT();
       mqttClient.loop();
+
+      // Publish status periodically every 4 seconds so the server knows the ESP32 is online
+      static unsigned long last_status_pub = 0;
+      if (mqttClient.connected() && (millis() - last_status_pub > 4000)) {
+        publishStatus();
+        last_status_pub = millis();
+      }
     }
 
     // --- ĐỌC PIR (chỉ xử lý cạnh lên LOW→HIGH) ---
     bool pir_now         = (digitalRead(PIN_PIR) == HIGH);
-    Serial.println(pir_now ? "pir true" : "pir_false");
+   // Serial.println(pir_now ? "pir true" : "pir_false");
     bool pir_rising_edge = (pir_now && !pir_prev);
 
-    if (pir_rising_edge) {
+    if (pir_rising_edge && cam_bien_on) {
       Serial.println("PIR: Motion detected.");
 
       // Gửi cảnh báo lên server (chống spam 5 giây)
@@ -217,8 +219,6 @@ void publishStatus() {
   if (!mqttClient.connected()) return;
 
   StaticJsonDocument<256> doc;
-  doc["cam_ok"] = cam_ok ? 1 : 0;
-  doc["pir_ok"] = pir_ok ? 1 : 0;
   doc["coi_kc"] = coi_khan_cap ? 1 : 0;
   doc["coi_td"] = coi_tu_dong  ? 1 : 0;
   doc["pir_on"] = cam_bien_on  ? 1 : 0;
